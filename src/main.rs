@@ -1,6 +1,6 @@
 use clap::{Arg, Command};
 use relative_path::RelativePath;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 
 #[macro_use]
 extern crate serde_derive;
