@@ -12,6 +12,15 @@ struct CompileCommand {
     file: String,
 }
 
+impl CompileCommand {
+    fn postprocess(&mut self) {
+        let mut arguments = self.command.split(' ').map(|x| x.into()).collect::<Vec<String>>();
+        let mut hs = std::collections::HashSet::new();
+        arguments.retain(|x| hs.insert(x.clone()));
+
+    }
+}
+
 fn main() {
     let matches = Command::new("ccj_postprocess")
         .version("1.0")
@@ -30,8 +39,10 @@ fn main() {
     let input_file = matches.value_of("input_file").unwrap();
     let path = Path::new(input_file);
     let context = std::fs::read_to_string(path).expect(&format!("cannot open the file {:?}", path));
-    let compile_commands :Vec<CompileCommand> = serde_json::from_str(&context).expect("[Error] json file parser fail!");
-
+    let mut compile_commands :Vec<CompileCommand> = serde_json::from_str(&context).expect("[Error] json file parser fail!");
+    for cc in &mut compile_commands {
+        cc.postprocess();
+    }
 
     println!("{:#?}", compile_commands);
 }
