@@ -5,7 +5,7 @@ use std::path::Path;
 #[macro_use]
 extern crate serde_derive;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct CompileCommand {
     command: String,
     directory: String,
