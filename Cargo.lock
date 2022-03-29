@@ -30,6 +30,7 @@ name = "ccj_postprocess"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "relative-path",
  "serde",
  "serde_derive",
  "serde_json",
@@ -119,6 +120,12 @@ checksum = "632d02bff7f874a36f33ea8bb416cd484b90cc66c1194b1a1110d067a7013f58"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "relative-path"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4e112eddc95bbf25365df3b5414354ad2fe7ee465eddb9965a515faf8c3b6d9"
 
 [[package]]
 name = "ryu"
