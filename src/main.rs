@@ -1,7 +1,6 @@
 use clap::{Arg, Command};
 use relative_path::RelativePath;
 use std::path::Path;
-use std::collections::HashSet;
 #[macro_use]
 extern crate serde_derive;
 
@@ -23,16 +22,16 @@ impl CompileCommand {
         Self::remove_duplicate_option(&mut arguments);
         Self::handle_include_path(&mut arguments, &self.directory);
 
-        let insert_option = vec!["-D__GNUC__=10", "-I/remote/vgrnd106/chielin/local/boost/boost_1_78_0"]
-            .iter()
-            .map(|x| x.to_string())
-            .collect::<Vec<_>>();
-        Self::insert_needed_option(&mut arguments, insert_option);
-        
-        let remove_option: HashSet<_> = vec!["-fconcepts"]
+        let insert_option = vec![
+            "-D__GNUC__=10",
+            "-I/remote/vgrnd106/chielin/local/boost/boost_1_78_0",
+        ]
         .iter()
         .map(|x| x.to_string())
-        .collect();
+        .collect::<Vec<_>>();
+        Self::insert_needed_option(&mut arguments, insert_option);
+
+        let remove_option = vec!["^-fconcepts$", "^-Werror$", "^-Wno.*$"].iter().map(|x| x.to_string()).collect::<Vec<_>>();
         Self::remove_option(&mut arguments, remove_option);
 
         Self::remove_duplicate_option(&mut arguments);
@@ -74,12 +73,19 @@ impl CompileCommand {
         arguments[1..].rotate_right(len);
     }
 
-    fn remove_option(arguments: &mut Vec<String>, remove_options: HashSet<String>) {
-        arguments.retain(|x| !remove_options.contains(x));
+    fn remove_option(arguments: &mut Vec<String>, remove_options: Vec<String>) {
+        use regex::Regex;
+        arguments.retain(|x| {
+            remove_options.iter().all(|y| {
+                let r = Regex::new(y).unwrap();
+                !r.is_match(x) 
+            })
+        });
+        // arguments.retain(|x| !remove_options.contains(x));
     }
 
     fn dump_ccj(&self) {
-        println!("{}",serde_json::to_string_pretty(self).unwrap());
+        println!("{}", serde_json::to_string_pretty(self).unwrap());
     }
 }
 
@@ -97,12 +103,38 @@ fn main() {
                 .takes_value(true)
                 .required(true),
         )
+        .arg(
+            Arg::new("append_file")
+                .short('a')
+                .value_name("append")
+                .long("append")
+                .help("append a file after input file")
+                .takes_value(true)
+                .required(false),
+        )
         .get_matches();
     let input_file = matches.value_of("input_file").unwrap();
+    let append_file = matches.value_of("append_file");
     let path = Path::new(input_file);
     let context = std::fs::read_to_string(path).expect(&format!("cannot open the file {:?}", path));
     let mut compile_commands: Vec<CompileCommand> =
         serde_json::from_str(&context).expect("[Error] json file parser fail!");
+
+    if let Some(append_path) = append_file {
+        let ap = Path::new(append_path);
+        let context = std::fs::read_to_string(ap).expect(&format!("cannot open the append file: {:?}", path));
+        let append_compile_commands: Vec<CompileCommand> = serde_json::from_str(&context).expect("[Error] json file parser fail for append file!");
+        for acc in append_compile_commands {
+            match compile_commands.iter_mut().find(|x| x.directory==acc.directory && x.file == acc.file) {
+                Some(cc) => {
+                    *cc = acc;
+                },
+                None =>{
+                    compile_commands.push(acc);
+                }
+            }
+        }
+    }
     for cc in &mut compile_commands {
         cc.postprocess();
     }
@@ -114,5 +146,4 @@ fn main() {
         cc.dump_ccj();
     }
     println!("]");
-
 }
