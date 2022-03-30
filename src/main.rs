@@ -1,7 +1,7 @@
 use clap::{Arg, Command};
 use relative_path::RelativePath;
-use std::path::{Path};
-
+use std::path::Path;
+use std::collections::HashSet;
 #[macro_use]
 extern crate serde_derive;
 
@@ -13,23 +13,47 @@ struct CompileCommand {
 }
 
 impl CompileCommand {
-    fn postprocess(&mut self) {
+    pub fn postprocess(&mut self) {
         let mut arguments = self
             .command
             .split(' ')
             .map(|x| x.into())
             .collect::<Vec<String>>();
-        let mut hs = std::collections::HashSet::new();
 
+        Self::remove_duplicate_option(&mut arguments);
+        Self::handle_include_path(&mut arguments, &self.directory);
+
+        let insert_option = vec!["-D__GNUC__=10", "-I/remote/vgrnd106/chielin/local/boost/boost_1_78_0"]
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>();
+        Self::insert_needed_option(&mut arguments, insert_option);
+        
+        let remove_option: HashSet<_> = vec!["-fconcepts"]
+        .iter()
+        .map(|x| x.to_string())
+        .collect();
+        Self::remove_option(&mut arguments, remove_option);
+
+        Self::remove_duplicate_option(&mut arguments);
+
+        // join the arguments to command
+        self.command = arguments.join(" ");
+    }
+
+    fn remove_duplicate_option(arguments: &mut Vec<String>) {
+        let mut hs = std::collections::HashSet::new();
         // remove the duplicate arguments
         arguments.retain(|x| hs.insert(x.clone()));
+    }
 
+    fn handle_include_path(arguments: &mut Vec<String>, base_directory: &str) {
         // handle the relative path in -I option
-        for option in &mut arguments {
+        for option in arguments {
             if option.len() > 2 && &option[0..2] == "-I" {
                 let relative_path = RelativePath::new(&option[2..]);
                 let full_path = if &option[2..3] != "/" {
-                    relative_path.to_logical_path(&self.directory)
+                    relative_path.to_logical_path(base_directory)
                 } else {
                     relative_path.to_logical_path("")
                 };
@@ -39,23 +63,23 @@ impl CompileCommand {
                 // println!("dir: {:?}", *option);
             }
         }
+    }
 
+    fn insert_needed_option(arguments: &mut Vec<String>, mut insert_options: Vec<String>) {
         // insert the specified option after first g++ command
         // original: g++ -o main main.cpp
         // after:    g++ -D__GNU__=10 -o main main.cpp
-        let mut insert_option = vec!["-D__GNU__=10"]
-            .iter()
-            .map(|x| x.to_string())
-            .collect::<Vec<_>>();
-        let len = insert_option.len();
-        arguments.append(&mut insert_option);
+        let len = insert_options.len();
+        arguments.append(&mut insert_options);
         arguments[1..].rotate_right(len);
+    }
 
-        hs.clear();
-        // remove the duplicate arguments again
-        arguments.retain(|x| hs.insert(x.clone()));
-        // join the arguments to command
-        self.command = arguments.join(" ");
+    fn remove_option(arguments: &mut Vec<String>, remove_options: HashSet<String>) {
+        arguments.retain(|x| !remove_options.contains(x));
+    }
+
+    fn dump_ccj(&self) {
+        println!("{}",serde_json::to_string_pretty(self).unwrap());
     }
 }
 
@@ -83,5 +107,12 @@ fn main() {
         cc.postprocess();
     }
 
-    println!("{:#?}", compile_commands);
+    println!("[");
+    compile_commands[0].dump_ccj();
+    for cc in &compile_commands[1..] {
+        println!(",");
+        cc.dump_ccj();
+    }
+    println!("]");
+
 }
