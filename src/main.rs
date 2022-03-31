@@ -1,6 +1,7 @@
 use clap::{Arg, Command};
 use relative_path::RelativePath;
 use std::path::Path;
+use rayon::prelude::*;
 #[macro_use]
 extern crate serde_derive;
 
@@ -75,10 +76,10 @@ impl CompileCommand {
 
     fn remove_option(arguments: &mut Vec<String>, remove_options: Vec<String>) {
         use regex::Regex;
+        let remove_regex = remove_options.into_iter().map(|x| Regex::new(&x).unwrap()).collect::<Vec<_>>();
         arguments.retain(|x| {
-            remove_options.iter().all(|y| {
-                let r = Regex::new(y).unwrap();
-                !r.is_match(x) 
+            remove_regex.iter().all(|regex| {
+                !regex.is_match(x) 
             })
         });
         // arguments.retain(|x| !remove_options.contains(x));
@@ -135,9 +136,13 @@ fn main() {
             }
         }
     }
-    for cc in &mut compile_commands {
-        cc.postprocess();
-    }
+
+    compile_commands.par_iter_mut().for_each(|x| x.postprocess());
+    // for cc in &mut compile_commands {
+    //     println!("i: {}",i);
+    //     i+=1;
+    //     cc.postprocess();
+    // }
 
     println!("[");
     compile_commands[0].dump_ccj();
