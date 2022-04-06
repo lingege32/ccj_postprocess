@@ -25,7 +25,7 @@ impl CompileCommand {
 
         let insert_option = vec![
             "-D__GNUC__=10",
-            "-I/remote/vgrnd106/chielin/local/boost/boost_1_78_0",
+            "-I/remote/vgfdn1/thirdparty/QSCT/QSCT_2022_01_25/snps_boost_1_73_0",
         ]
         .iter()
         .map(|x| x.to_string())
