@@ -22,18 +22,20 @@ impl CompileCommand {
 
         Self::remove_duplicate_option(&mut arguments);
         Self::handle_include_path(&mut arguments, &self.directory);
+        let remove_option = vec!["^-fconcepts$", "^-Werror$", "^-Wno.*$", "^-ffloat-store$"].iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        Self::remove_option(&mut arguments, remove_option);
 
         let insert_option = vec![
             "-D__GNUC__=10",
             "-I/remote/vgfdn1/thirdparty/QSCT/QSCT_2022_01_25/snps_boost_1_73_0",
+            "-Wno-error=reserved-user-defined-literal",
+            "-Wignored-optimization-argument",
         ]
         .iter()
         .map(|x| x.to_string())
         .collect::<Vec<_>>();
         Self::insert_needed_option(&mut arguments, insert_option);
 
-        let remove_option = vec!["^-fconcepts$", "^-Werror$", "^-Wno.*$"].iter().map(|x| x.to_string()).collect::<Vec<_>>();
-        Self::remove_option(&mut arguments, remove_option);
 
         Self::remove_duplicate_option(&mut arguments);
 
