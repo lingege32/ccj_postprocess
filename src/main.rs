@@ -1,19 +1,24 @@
 use clap::{Arg, Command};
+use rayon::prelude::*;
 use relative_path::RelativePath;
 use std::path::Path;
-use rayon::prelude::*;
 #[macro_use]
 extern crate serde_derive;
-
 #[derive(Serialize, Deserialize, Debug)]
 struct CompileCommand {
     command: String,
     directory: String,
     file: String,
 }
+#[derive(Serialize, Deserialize, Debug)]
+struct PostProcessConfig {
+    remove: Vec<String>,
+    insert: Vec<String>,
+}
+
 
 impl CompileCommand {
-    pub fn postprocess(&mut self) {
+    pub fn postprocess(&mut self, pp_config: &Option<PostProcessConfig>) {
         let mut arguments = self
             .command
             .split(' ')
@@ -22,20 +27,13 @@ impl CompileCommand {
 
         Self::remove_duplicate_option(&mut arguments);
         Self::handle_include_path(&mut arguments, &self.directory);
-        let remove_option = vec!["^-fconcepts$", "^-Werror$", "^-Wno.*$", "^-ffloat-store$"].iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        let remove_option = pp_config.as_ref().map(|x| x.remove.clone()).unwrap_or(Vec::new());
+
         Self::remove_option(&mut arguments, remove_option);
 
-        let insert_option = vec![
-            "-D__GNUC__=10",
-            "-I/remote/vgfdn1/thirdparty/QSCT/QSCT_2022_01_25/snps_boost_1_73_0",
-            "-Wno-error=reserved-user-defined-literal",
-            "-Wignored-optimization-argument",
-        ]
-        .iter()
-        .map(|x| x.to_string())
-        .collect::<Vec<_>>();
-        Self::insert_needed_option(&mut arguments, insert_option);
+        let insert_option = pp_config.as_ref().map(|x| x.insert.clone()).unwrap_or(Vec::new());
 
+        Self::insert_needed_option(&mut arguments, insert_option);
 
         Self::remove_duplicate_option(&mut arguments);
 
@@ -78,12 +76,11 @@ impl CompileCommand {
 
     fn remove_option(arguments: &mut Vec<String>, remove_options: Vec<String>) {
         use regex::Regex;
-        let remove_regex = remove_options.into_iter().map(|x| Regex::new(&x).unwrap()).collect::<Vec<_>>();
-        arguments.retain(|x| {
-            remove_regex.iter().all(|regex| {
-                !regex.is_match(x) 
-            })
-        });
+        let remove_regex = remove_options
+            .into_iter()
+            .map(|x| Regex::new(&x).unwrap())
+            .collect::<Vec<_>>();
+        arguments.retain(|x| remove_regex.iter().all(|regex| !regex.is_match(x)));
         // arguments.retain(|x| !remove_options.contains(x));
     }
 
@@ -94,7 +91,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.0")
+        .version("1.2")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -115,9 +112,24 @@ fn main() {
                 .takes_value(true)
                 .required(false),
         )
+        .arg(
+            Arg::new("postprocess_config")
+                .short('p')
+                .value_name("postprocess_config")
+                .long("post_conf")
+                .help("a json format config to tell ccj_postprocess how to postprocess")
+                .takes_value(true)
+                .required(false),
+        )
         .get_matches();
     let input_file = matches.value_of("input_file").unwrap();
     let append_file = matches.value_of("append_file");
+    let postprocess_config = matches.value_of("postprocess_config").map(|file| {
+        let pp = Path::new(file);
+        let context = std::fs::read_to_string(pp).expect(&format!("cannot open the append file: {}",file));
+        let pp_config : PostProcessConfig = serde_json::from_str(&context).expect("[Error] json fileparser fail for postprocess config");
+        pp_config
+    });
     let path = Path::new(input_file);
     let context = std::fs::read_to_string(path).expect(&format!("cannot open the file {:?}", path));
     let mut compile_commands: Vec<CompileCommand> =
@@ -125,21 +137,28 @@ fn main() {
 
     if let Some(append_path) = append_file {
         let ap = Path::new(append_path);
-        let context = std::fs::read_to_string(ap).expect(&format!("cannot open the append file: {:?}", path));
-        let append_compile_commands: Vec<CompileCommand> = serde_json::from_str(&context).expect("[Error] json file parser fail for append file!");
+        let context =
+            std::fs::read_to_string(ap).expect(&format!("cannot open the append file: {:?}", path));
+        let append_compile_commands: Vec<CompileCommand> =
+            serde_json::from_str(&context).expect("[Error] json file parser fail for append file!");
         for acc in append_compile_commands {
-            match compile_commands.iter_mut().find(|x| x.directory==acc.directory && x.file == acc.file) {
+            match compile_commands
+                .iter_mut()
+                .find(|x| x.directory == acc.directory && x.file == acc.file)
+            {
                 Some(cc) => {
                     *cc = acc;
-                },
-                None =>{
+                }
+                None => {
                     compile_commands.push(acc);
                 }
             }
         }
     }
 
-    compile_commands.par_iter_mut().for_each(|x| x.postprocess());
+    compile_commands
+        .par_iter_mut()
+        .for_each(|x| x.postprocess(&postprocess_config));
     // for cc in &mut compile_commands {
     //     println!("i: {}",i);
     //     i+=1;
