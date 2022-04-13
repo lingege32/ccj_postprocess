@@ -14,8 +14,8 @@ struct CompileCommand {
 struct PostProcessConfig {
     remove: Vec<String>,
     insert: Vec<String>,
+    replace: Vec<String>,
 }
-
 
 impl CompileCommand {
     pub fn postprocess(&mut self, pp_config: &Option<PostProcessConfig>) {
@@ -27,12 +27,27 @@ impl CompileCommand {
 
         Self::remove_duplicate_option(&mut arguments);
         Self::handle_include_path(&mut arguments, &self.directory);
-        let remove_option = pp_config.as_ref().map(|x| x.remove.clone()).unwrap_or(Vec::new());
+
+        // remove the unnessesary options
+        let remove_option = pp_config
+            .as_ref()
+            .map(|x| x.remove.clone())
+            .unwrap_or(Vec::new());
 
         Self::remove_option(&mut arguments, remove_option);
 
-        let insert_option = pp_config.as_ref().map(|x| x.insert.clone()).unwrap_or(Vec::new());
+        // replace the string
+        let replace_config = pp_config
+            .as_ref()
+            .map(|x| x.replace.clone())
+            .unwrap_or(Vec::new());
+        Self::replace_option(&mut arguments, replace_config);
 
+        // insert needed options
+        let insert_option = pp_config
+            .as_ref()
+            .map(|x| x.insert.clone())
+            .unwrap_or(Vec::new());
         Self::insert_needed_option(&mut arguments, insert_option);
 
         Self::remove_duplicate_option(&mut arguments);
@@ -83,6 +98,16 @@ impl CompileCommand {
         arguments.retain(|x| remove_regex.iter().all(|regex| !regex.is_match(x)));
         // arguments.retain(|x| !remove_options.contains(x));
     }
+    fn replace_option(arguments: &mut Vec<String>, remove_options: Vec<String>) {
+        for arg in arguments {
+            for ro in &remove_options {
+                let ro_token = ro.split(',').collect::<Vec<_>>();
+                if ro_token.len() == 2 {
+                    *arg = arg.replace(ro_token[0], ro_token[1]);
+                }
+            }
+        }
+    }
 
     fn dump_ccj(&self) {
         println!("{}", serde_json::to_string_pretty(self).unwrap());
@@ -91,7 +116,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.2")
+        .version("1.3")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -126,8 +151,10 @@ fn main() {
     let append_file = matches.value_of("append_file");
     let postprocess_config = matches.value_of("postprocess_config").map(|file| {
         let pp = Path::new(file);
-        let context = std::fs::read_to_string(pp).expect(&format!("cannot open the append file: {}",file));
-        let pp_config : PostProcessConfig = serde_json::from_str(&context).expect("[Error] json fileparser fail for postprocess config");
+        let context =
+            std::fs::read_to_string(pp).expect(&format!("cannot open the append file: {}", file));
+        let pp_config: PostProcessConfig = serde_json::from_str(&context)
+            .expect("[Error] json fileparser fail for postprocess config");
         pp_config
     });
     let path = Path::new(input_file);
