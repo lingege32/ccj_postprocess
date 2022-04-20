@@ -1,7 +1,7 @@
 use clap::{Arg, Command};
 use rayon::prelude::*;
 use relative_path::RelativePath;
-use std::{path::Path, cmp::Ordering};
+use std::{cmp::Ordering, path::Path};
 #[macro_use]
 extern crate serde_derive;
 #[derive(Serialize, Deserialize, Debug)]
@@ -172,7 +172,9 @@ fn main() {
 
     let keep_duplicated = match matches.value_of("keep_duplicated_file") {
         None => false,
-        Some(x) => x.parse::<bool>().expect("non boolean value for keep-duplicated option"),
+        Some(x) => x
+            .parse::<bool>()
+            .expect("non boolean value for keep-duplicated option"),
     };
 
     if let Some(append_path) = append_file {
@@ -185,19 +187,12 @@ fn main() {
     }
 
     if !keep_duplicated {
-        compile_commands.sort_by(|lhs, rhs| {
-            match lhs.directory.cmp(&rhs.directory) {
-                Ordering::Equal => {
-                    lhs.file.cmp(&rhs.file)
-                },
-                ord => {
-                    ord
-                }
-            }
+        compile_commands.sort_by(|lhs, rhs| match lhs.directory.cmp(&rhs.directory) {
+            Ordering::Equal => lhs.file.cmp(&rhs.file),
+            ord => ord,
         });
-        compile_commands.dedup_by(|lhs, rhs| {
-            lhs.directory == rhs.directory && lhs.file==rhs.file
-        });
+        compile_commands
+            .dedup_by(|lhs, rhs| lhs.directory == rhs.directory && lhs.file == rhs.file);
     }
 
     compile_commands
