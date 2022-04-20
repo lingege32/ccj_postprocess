@@ -1,7 +1,7 @@
 use clap::{Arg, Command};
 use rayon::prelude::*;
 use relative_path::RelativePath;
-use std::path::Path;
+use std::{path::Path, cmp::Ordering};
 #[macro_use]
 extern crate serde_derive;
 #[derive(Serialize, Deserialize, Debug)]
@@ -116,7 +116,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.3")
+        .version("1.4")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -146,6 +146,14 @@ fn main() {
                 .takes_value(true)
                 .required(false),
         )
+        .arg(
+            Arg::new("keep_duplicated_file")
+                .long("keep-duplicated")
+                .help("keep duplicated file in the command line. Default: false")
+                .takes_value(true)
+                .required(false)
+                .default_value("false"),
+        )
         .get_matches();
     let input_file = matches.value_of("input_file").unwrap();
     let append_file = matches.value_of("append_file");
@@ -162,25 +170,34 @@ fn main() {
     let mut compile_commands: Vec<CompileCommand> =
         serde_json::from_str(&context).expect("[Error] json file parser fail!");
 
+    let keep_duplicated = match matches.value_of("keep_duplicated_file") {
+        None => false,
+        Some(x) => x.parse::<bool>().expect("non boolean value for keep-duplicated option"),
+    };
+
     if let Some(append_path) = append_file {
         let ap = Path::new(append_path);
         let context =
             std::fs::read_to_string(ap).expect(&format!("cannot open the append file: {:?}", path));
-        let append_compile_commands: Vec<CompileCommand> =
+        let mut append_compile_commands: Vec<CompileCommand> =
             serde_json::from_str(&context).expect("[Error] json file parser fail for append file!");
-        for acc in append_compile_commands {
-            match compile_commands
-                .iter_mut()
-                .find(|x| x.directory == acc.directory && x.file == acc.file)
-            {
-                Some(cc) => {
-                    *cc = acc;
-                }
-                None => {
-                    compile_commands.push(acc);
+        compile_commands.append(&mut append_compile_commands);
+    }
+
+    if !keep_duplicated {
+        compile_commands.sort_by(|lhs, rhs| {
+            match lhs.directory.cmp(&rhs.directory) {
+                Ordering::Equal => {
+                    lhs.file.cmp(&rhs.file)
+                },
+                ord => {
+                    ord
                 }
             }
-        }
+        });
+        compile_commands.dedup_by(|lhs, rhs| {
+            lhs.directory == rhs.directory && lhs.file==rhs.file
+        });
     }
 
     compile_commands
