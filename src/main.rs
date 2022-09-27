@@ -116,7 +116,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.4")
+        .version("1.4.1")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
