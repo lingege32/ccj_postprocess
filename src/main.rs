@@ -133,7 +133,7 @@ fn main() {
                 .short('a')
                 .value_name("append")
                 .long("append")
-                .help("append a file after input file")
+                .help("Append files after input file; use ',' as delimiter")
                 .takes_value(true)
                 .required(false),
         )
@@ -178,12 +178,14 @@ fn main() {
     };
 
     if let Some(append_path) = append_file {
-        let ap = Path::new(append_path);
-        let context =
-            std::fs::read_to_string(ap).expect(&format!("cannot open the append file: {:?}", path));
-        let mut append_compile_commands: Vec<CompileCommand> =
-            serde_json::from_str(&context).expect("[Error] json file parser fail for append file!");
-        compile_commands.append(&mut append_compile_commands);
+        for a_path in append_path.split(',') {
+            let ap = Path::new(a_path);
+            let context =
+                std::fs::read_to_string(ap).expect(&format!("cannot open the append file: {:?}", path));
+            let mut append_compile_commands: Vec<CompileCommand> =
+                serde_json::from_str(&context).expect("[Error] json file parser fail for append file!");
+            compile_commands.append(&mut append_compile_commands);
+        }
     }
 
     if !keep_duplicated {
