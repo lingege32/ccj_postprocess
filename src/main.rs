@@ -116,7 +116,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.4.1")
+        .version("1.4.2")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -189,12 +189,16 @@ fn main() {
     }
 
     if !keep_duplicated {
-        compile_commands.sort_by(|lhs, rhs| match lhs.directory.cmp(&rhs.directory) {
-            Ordering::Equal => lhs.file.cmp(&rhs.file),
-            ord => ord,
-        });
-        compile_commands
-            .dedup_by(|lhs, rhs| lhs.directory == rhs.directory && lhs.file == rhs.file);
+        // Don't modify the order
+        let mut tmp_compile_commands = Vec::with_capacity(compile_commands.len());
+        std::mem::swap(&mut tmp_compile_commands, &mut compile_commands);
+        let mut hs = std::collections::HashSet::new();
+        for compile_command in tmp_compile_commands {
+            let key = compile_command.directory.clone() + &compile_command.file;
+            if hs.insert(key) {
+                compile_commands.push(compile_command);
+            }
+        }
     }
 
     compile_commands
