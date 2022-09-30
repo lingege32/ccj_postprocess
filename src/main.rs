@@ -15,6 +15,7 @@ struct PostProcessConfig {
     remove: Vec<String>,
     insert: Vec<String>,
     replace: Vec<String>,
+    ignore_files: Vec<String>,
 }
 
 impl CompileCommand {
@@ -116,7 +117,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.4.2")
+        .version("1.4.3")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -200,6 +201,22 @@ fn main() {
             }
         }
     }
+
+    if let Some(ppc) = &postprocess_config {
+        let ignore_files = ppc.ignore_files.clone();
+        if !ignore_files.is_empty() {
+            use regex::Regex;
+            let remove_regex = ignore_files
+                .into_iter()
+                .map(|x| Regex::new(&x).unwrap())
+                .collect::<Vec<_>>();
+            compile_commands.retain(|x| {
+                let path = x.directory.clone() + "/" + &x.file;
+                remove_regex.iter().all(|regex| !regex.is_match(&path))
+            });
+        }
+    }
+
 
     compile_commands
         .par_iter_mut()
