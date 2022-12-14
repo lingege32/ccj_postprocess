@@ -1,14 +1,19 @@
 use clap::{Arg, Command};
 use rayon::prelude::*;
 use relative_path::RelativePath;
-use std::{cmp::Ordering, path::Path};
+use std::path::Path;
 #[macro_use]
 extern crate serde_derive;
 #[derive(Serialize, Deserialize, Debug)]
 struct CompileCommand {
+    #[serde(default)]
     command: String,
+    #[serde(default)]
+    arguments: Vec<String>,
     directory: String,
     file: String,
+    #[serde(default)]
+    output: String,
 }
 #[derive(Serialize, Deserialize, Debug)]
 struct PostProcessConfig {
@@ -20,14 +25,11 @@ struct PostProcessConfig {
 
 impl CompileCommand {
     pub fn postprocess(&mut self, pp_config: &Option<PostProcessConfig>) {
-        let mut arguments = self
-            .command
-            .split(' ')
-            .map(|x| x.into())
-            .collect::<Vec<String>>();
+        self.init_arguments();
+        let arguments = &mut self.arguments;
 
-        Self::remove_duplicate_option(&mut arguments);
-        Self::handle_include_path(&mut arguments, &self.directory);
+        Self::remove_duplicate_option(arguments);
+        Self::handle_include_path(arguments, &self.directory);
 
         // remove the unnessesary options
         let remove_option = pp_config
@@ -35,28 +37,36 @@ impl CompileCommand {
             .map(|x| x.remove.clone())
             .unwrap_or(Vec::new());
 
-        Self::remove_option(&mut arguments, remove_option);
+        Self::remove_option(arguments, remove_option);
 
         // replace the string
         let replace_config = pp_config
             .as_ref()
             .map(|x| x.replace.clone())
             .unwrap_or(Vec::new());
-        Self::replace_option(&mut arguments, replace_config);
+        Self::replace_option(arguments, replace_config);
 
         // insert needed options
         let insert_option = pp_config
             .as_ref()
             .map(|x| x.insert.clone())
             .unwrap_or(Vec::new());
-        Self::insert_needed_option(&mut arguments, insert_option);
+        Self::insert_needed_option(arguments, insert_option);
 
-        Self::remove_duplicate_option(&mut arguments);
+        Self::remove_duplicate_option(arguments);
 
         // join the arguments to command
         self.command = arguments.join(" ");
     }
-
+    fn init_arguments(&mut self) {
+        if self.arguments.is_empty() {
+            self.arguments = self
+                .command
+                .split(' ')
+                .map(|x| x.into())
+                .collect::<Vec<String>>();
+        }
+    }
     fn remove_duplicate_option(arguments: &mut Vec<String>) {
         let mut hs = std::collections::HashSet::new();
         // remove the duplicate arguments
@@ -117,7 +127,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.4.3")
+        .version("1.5.0")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -181,10 +191,10 @@ fn main() {
     if let Some(append_path) = append_file {
         for a_path in append_path.split(',') {
             let ap = Path::new(a_path);
-            let context =
-                std::fs::read_to_string(ap).expect(&format!("cannot open the append file: {:?}", path));
-            let mut append_compile_commands: Vec<CompileCommand> =
-                serde_json::from_str(&context).expect("[Error] json file parser fail for append file!");
+            let context = std::fs::read_to_string(ap)
+                .expect(&format!("cannot open the append file: {:?}", path));
+            let mut append_compile_commands: Vec<CompileCommand> = serde_json::from_str(&context)
+                .expect("[Error] json file parser fail for append file!");
             compile_commands.append(&mut append_compile_commands);
         }
     }
@@ -216,7 +226,6 @@ fn main() {
             });
         }
     }
-
 
     compile_commands
         .par_iter_mut()
