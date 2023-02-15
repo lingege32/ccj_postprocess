@@ -127,7 +127,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.5.0")
+        .version("1.5.1")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -136,39 +136,38 @@ fn main() {
                 .value_name("input")
                 .long("input")
                 .help("a compile_commands.json generated from vgbuild")
-                .takes_value(true)
+                .action(clap::ArgAction::Set)
                 .required(true),
-        )
-        .arg(
+            )
+            .arg(
             Arg::new("append_file")
                 .short('a')
                 .value_name("append")
                 .long("append")
                 .help("Append files after input file; use ',' as delimiter")
-                .takes_value(true)
+                .action(clap::ArgAction::Set)
                 .required(false),
-        )
+            )
         .arg(
             Arg::new("postprocess_config")
                 .short('p')
                 .value_name("postprocess_config")
                 .long("post_conf")
                 .help("a json format config to tell ccj_postprocess how to postprocess")
-                .takes_value(true)
+                .action(clap::ArgAction::Set)
                 .required(false),
-        )
+            )
         .arg(
             Arg::new("keep_duplicated_file")
                 .long("keep-duplicated")
                 .help("keep duplicated file in the command line. Default: false")
-                .takes_value(true)
+                .action(clap::ArgAction::Set)
                 .required(false)
                 .default_value("false"),
         )
         .get_matches();
-    let input_file = matches.value_of("input_file").unwrap();
-    let append_file = matches.value_of("append_file");
-    let postprocess_config = matches.value_of("postprocess_config").map(|file| {
+    let input_file = matches.get_one::<String>("input_file").unwrap();
+    let postprocess_config = matches.get_one::<String>("postprocess_config").map(|file| {
         let pp = Path::new(file);
         let context =
             std::fs::read_to_string(pp).expect(&format!("cannot open the append file: {}", file));
@@ -181,14 +180,14 @@ fn main() {
     let mut compile_commands: Vec<CompileCommand> =
         serde_json::from_str(&context).expect("[Error] json file parser fail!");
 
-    let keep_duplicated = match matches.value_of("keep_duplicated_file") {
+    let keep_duplicated = match matches.get_one::<String>("keep_duplicated_file") {
         None => false,
         Some(x) => x
             .parse::<bool>()
             .expect("non boolean value for keep-duplicated option"),
     };
-
-    if let Some(append_path) = append_file {
+    
+    if let Some(append_path) = matches.get_one::<String>("append_file") {
         for a_path in append_path.split(',') {
             let ap = Path::new(a_path);
             let context = std::fs::read_to_string(ap)
