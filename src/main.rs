@@ -127,7 +127,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.5.1")
+        .version("1.6.0")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -160,10 +160,11 @@ fn main() {
         .arg(
             Arg::new("keep_duplicated_file")
                 .long("keep-duplicated")
-                .help("keep duplicated file in the command line. Default: false")
+                .help("keep duplicated file in the command line.")
                 .action(clap::ArgAction::Set)
+                .value_parser(["keep", "retain_first", "retain_last"])
                 .required(false)
-                .default_value("false"),
+                .default_value("retain_first"),
         )
         .get_matches();
     let input_file = matches.get_one::<String>("input_file").unwrap();
@@ -180,12 +181,7 @@ fn main() {
     let mut compile_commands: Vec<CompileCommand> =
         serde_json::from_str(&context).expect("[Error] json file parser fail!");
 
-    let keep_duplicated = match matches.get_one::<String>("keep_duplicated_file") {
-        None => false,
-        Some(x) => x
-            .parse::<bool>()
-            .expect("non boolean value for keep-duplicated option"),
-    };
+
     
     if let Some(append_path) = matches.get_one::<String>("append_file") {
         for a_path in append_path.split(',') {
@@ -198,8 +194,7 @@ fn main() {
         }
     }
 
-    if !keep_duplicated {
-        // Don't modify the order
+    fn deduplicate_with_retain_first(mut compile_commands: Vec<CompileCommand>) -> Vec<CompileCommand> {
         let mut tmp_compile_commands = Vec::with_capacity(compile_commands.len());
         std::mem::swap(&mut tmp_compile_commands, &mut compile_commands);
         let mut hs = std::collections::HashSet::new();
@@ -208,6 +203,23 @@ fn main() {
             if hs.insert(key) {
                 compile_commands.push(compile_command);
             }
+        }
+        compile_commands
+    }
+    match matches.get_one::<String>("keep_duplicated_file").unwrap().as_str() {
+        "keep" => {
+            // do nothing
+        },
+        "retain_first" => {
+            compile_commands = deduplicate_with_retain_first(compile_commands);
+        },
+        "retain_last" => {
+            compile_commands.reverse();
+            compile_commands = deduplicate_with_retain_first(compile_commands);
+            compile_commands.reverse();
+        },
+        _ => {
+            unreachable!();
         }
     }
 

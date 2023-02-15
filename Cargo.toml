@@ -1,6 +1,6 @@
 [package]
 name = "ccj_postprocess"
-version = "1.5.1"
+version = "1.6.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,7 +9,7 @@ edition = "2021"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
-clap = "*"
+clap = { version = "4.*", features = ["derive"] }
 relative-path = "*"
 regex = "*"
 rayon = "*"
