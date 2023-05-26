@@ -123,11 +123,15 @@ impl CompileCommand {
     fn dump_ccj(&self) {
         println!("{}", serde_json::to_string_pretty(self).unwrap());
     }
+
+    fn dump_full_path(&self) {
+        println!("{}/{}", self.directory, self.file);
+    }
 }
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.6.0")
+        .version("1.7.0")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -138,8 +142,8 @@ fn main() {
                 .help("a compile_commands.json generated from vgbuild")
                 .action(clap::ArgAction::Set)
                 .required(true),
-            )
-            .arg(
+        )
+        .arg(
             Arg::new("append_file")
                 .short('a')
                 .value_name("append")
@@ -147,7 +151,7 @@ fn main() {
                 .help("Append files after input file; use ',' as delimiter")
                 .action(clap::ArgAction::Set)
                 .required(false),
-            )
+        )
         .arg(
             Arg::new("postprocess_config")
                 .short('p')
@@ -156,7 +160,7 @@ fn main() {
                 .help("a json format config to tell ccj_postprocess how to postprocess")
                 .action(clap::ArgAction::Set)
                 .required(false),
-            )
+        )
         .arg(
             Arg::new("keep_duplicated_file")
                 .long("keep-duplicated")
@@ -165,6 +169,20 @@ fn main() {
                 .value_parser(["keep", "retain_first", "retain_last"])
                 .required(false)
                 .default_value("retain_first"),
+        )
+        .arg(
+            Arg::new("dump_TransUnit_list")
+                .long("dump_list")
+                .help("Dump the all transunit file")
+                .required(false)
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("FindCommand")
+                .long("find_command")
+                .help("Dump the directory and the command for the specified file. Seperated by the comma.")
+                .required(false)
+                .action(clap::ArgAction::Set),
         )
         .get_matches();
     let input_file = matches.get_one::<String>("input_file").unwrap();
@@ -181,8 +199,6 @@ fn main() {
     let mut compile_commands: Vec<CompileCommand> =
         serde_json::from_str(&context).expect("[Error] json file parser fail!");
 
-
-    
     if let Some(append_path) = matches.get_one::<String>("append_file") {
         for a_path in append_path.split(',') {
             let ap = Path::new(a_path);
@@ -194,7 +210,9 @@ fn main() {
         }
     }
 
-    fn deduplicate_with_retain_first(mut compile_commands: Vec<CompileCommand>) -> Vec<CompileCommand> {
+    fn deduplicate_with_retain_first(
+        mut compile_commands: Vec<CompileCommand>,
+    ) -> Vec<CompileCommand> {
         let mut tmp_compile_commands = Vec::with_capacity(compile_commands.len());
         std::mem::swap(&mut tmp_compile_commands, &mut compile_commands);
         let mut hs = std::collections::HashSet::new();
@@ -206,18 +224,22 @@ fn main() {
         }
         compile_commands
     }
-    match matches.get_one::<String>("keep_duplicated_file").unwrap().as_str() {
+    match matches
+        .get_one::<String>("keep_duplicated_file")
+        .unwrap()
+        .as_str()
+    {
         "keep" => {
             // do nothing
-        },
+        }
         "retain_first" => {
             compile_commands = deduplicate_with_retain_first(compile_commands);
-        },
+        }
         "retain_last" => {
             compile_commands.reverse();
             compile_commands = deduplicate_with_retain_first(compile_commands);
             compile_commands.reverse();
-        },
+        }
         _ => {
             unreachable!();
         }
@@ -246,6 +268,22 @@ fn main() {
     //     i+=1;
     //     cc.postprocess();
     // }
+    let dump_transunit_list = matches.get_one::<bool>("dump_TransUnit_list").map(|x| *x).unwrap_or(false);
+    if dump_transunit_list {
+        for cc in compile_commands {
+            cc.dump_full_path();
+        }
+        return;
+    }
+
+    if let Some(file) = matches.get_one::<String>("FindCommand") {
+        for cc in compile_commands {
+            if cc.file == *file || format!("{}/{}", cc.directory, cc.file) == *file {
+                println!("{}, {}", cc.directory, cc.command);
+            }
+        }
+        return;
+    }
 
     println!("[");
     compile_commands[0].dump_ccj();
