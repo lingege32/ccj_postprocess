@@ -1,0 +1,4 @@
+{
+    "replace": ["/SCRATCH/vginterfaces/foundation/QSCT_2022_01_25,/remote/vgfdn1/thirdparty/QSCT/QSCT_2022_01_25","/SCRATCH/vginterfaces/foundation/QSCU_211022,/remote/vgfdn1/thirdparty/QSCU/QSCU_211022","/depot/qsc/QSCV/GCC,/depot/qsc/QSCU/GCC"],
+    "ignore_files": ["vcs-src/radify-src/.*zlog.cc$","vcs-src/radify-src/.*zstring_utils.cc$","zc/sw_shared","vcs-src/radify-src/.*ztrack_main.cc"]
+}

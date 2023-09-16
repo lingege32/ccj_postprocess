@@ -17,9 +17,13 @@ struct CompileCommand {
 }
 #[derive(Serialize, Deserialize, Debug)]
 struct PostProcessConfig {
+    #[serde(default)]
     remove: Vec<String>,
+    #[serde(default)]
     insert: Vec<String>,
+    #[serde(default)]
     replace: Vec<String>,
+    #[serde(default)]
     ignore_files: Vec<String>,
 }
 
@@ -131,7 +135,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.7.0")
+        .version("1.7.1")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
