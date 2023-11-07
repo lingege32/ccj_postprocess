@@ -61,6 +61,31 @@ impl CompileCommand {
 
         // join the arguments to command
         self.command = arguments.join(" ");
+
+        Self::handle_the_single_quote(arguments);
+    }
+
+    fn handle_the_single_quote(arg: &mut [String]) {
+        // remove the single quote
+        // Example: -DEXTERN='abc' to -DEXTERN=abc.
+        for a in arg {
+            if a.len() < 2 || &a[0..2] != "-D" {
+                continue;
+            }
+
+            let v = a.split('=').collect::<Vec<_>>();
+            if v.len() != 2 || v[1].len() < 2 {
+                continue;
+            }
+
+            if *v[1].as_bytes().first().unwrap() == '\'' as u8
+                && *v[1].as_bytes().last().unwrap() == '\'' as u8
+            {
+                let l = v[1].len();
+                let s = format!("{}={}", v[0], &v[1][1..l - 1]);
+                *a = s;
+            }
+        }
     }
     fn init_arguments(&mut self) {
         if self.arguments.is_empty() {
@@ -135,7 +160,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.7.1")
+        .version("1.7.2")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -272,7 +297,10 @@ fn main() {
     //     i+=1;
     //     cc.postprocess();
     // }
-    let dump_transunit_list = matches.get_one::<bool>("dump_TransUnit_list").map(|x| *x).unwrap_or(false);
+    let dump_transunit_list = matches
+        .get_one::<bool>("dump_TransUnit_list")
+        .map(|x| *x)
+        .unwrap_or(false);
     if dump_transunit_list {
         for cc in compile_commands {
             cc.dump_full_path();

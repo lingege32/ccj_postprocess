@@ -1,6 +1,6 @@
 customize the compile_command.json.
 ------
-ccj_postprocess 1.7.1
+ccj_postprocess 1.7.2
 Toby Lin
 compile_commands.json postprocess for zebu
 
