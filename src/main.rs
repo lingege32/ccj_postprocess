@@ -59,33 +59,65 @@ impl CompileCommand {
 
         Self::remove_duplicate_option(arguments);
 
-        // join the arguments to command
-        self.command = arguments.join(" ");
-
         Self::handle_the_single_quote(arguments);
+        // join the arguments to command
+        self.command = Self::join_the_arguments_as_commands(arguments);
     }
+    fn is_arg_with_d_and_equal(arg: &str) -> bool {
+        if arg.len() < 2 || &arg[0..2] != "-D" {
+            return false;
+        }
 
+        let v = arg.split('=').collect::<Vec<_>>();
+        if v.len() != 2 || v[1].len() < 2 {
+            return false;
+        }
+        true
+    }
+    fn is_need_to_handle_sing_quota(arg: &str) -> bool {
+        if arg.len() < 2 || &arg[0..2] != "-D" {
+            return false;
+        }
+
+        let v = arg.split('=').collect::<Vec<_>>();
+        if v.len() != 2 || v[1].len() < 2 {
+            return false;
+        }
+        if *v[1].as_bytes().first().unwrap() != '\'' as u8
+            || *v[1].as_bytes().last().unwrap() != '\'' as u8
+            {
+            return false;
+        }
+        true
+    }
     fn handle_the_single_quote(arg: &mut [String]) {
         // remove the single quote
         // Example: -DEXTERN='abc' to -DEXTERN=abc.
         for a in arg {
-            if a.len() < 2 || &a[0..2] != "-D" {
+            if !Self::is_need_to_handle_sing_quota(a) {
                 continue;
             }
-
+            
             let v = a.split('=').collect::<Vec<_>>();
-            if v.len() != 2 || v[1].len() < 2 {
-                continue;
-            }
-
-            if *v[1].as_bytes().first().unwrap() == '\'' as u8
-                && *v[1].as_bytes().last().unwrap() == '\'' as u8
-            {
-                let l = v[1].len();
-                let s = format!("{}={}", v[0], &v[1][1..l - 1]);
-                *a = s;
-            }
+            let l = v[1].len();
+            let s = format!("{}={}", v[0], &v[1][1..l - 1]);
+            *a = s;
         }
+    }
+    
+    fn join_the_arguments_as_commands(args: &[String]) -> String {
+        args.iter()
+            .map(|arg| {
+                if Self::is_arg_with_d_and_equal(arg) && arg.contains(" ") {
+                    let v = arg.split('=').collect::<Vec<_>>();
+                    let a = format!("{}='{}'", v[0], v[1]);
+                    a
+                } else {
+                    arg.clone()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
     }
     fn init_arguments(&mut self) {
         if self.arguments.is_empty() {
@@ -160,7 +192,7 @@ impl CompileCommand {
 
 fn main() {
     let matches = Command::new("ccj_postprocess")
-        .version("1.7.2")
+        .version("1.7.3")
         .author("Toby Lin")
         .about("compile_commands.json postprocess for zebu")
         .arg(
@@ -311,7 +343,7 @@ fn main() {
     if let Some(file) = matches.get_one::<String>("FindCommand") {
         for cc in compile_commands {
             if cc.file == *file || format!("{}/{}", cc.directory, cc.file) == *file {
-                println!("{}, {}", cc.directory, cc.command);
+                println!("{}, {:?}", cc.directory, cc.command);
             }
         }
         return;
