@@ -343,7 +343,7 @@ fn main() {
     if let Some(file) = matches.get_one::<String>("FindCommand") {
         for cc in compile_commands {
             if cc.file == *file || format!("{}/{}", cc.directory, cc.file) == *file {
-                println!("{}, {:?}", cc.directory, cc.command);
+                println!("{}, {}", cc.directory, cc.command);
             }
         }
         return;
