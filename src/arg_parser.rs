@@ -7,7 +7,7 @@ impl ArgParser {
     pub fn parse() -> Self {
         Self {
             matches: Command::new("ccj_postprocess")
-            .version("1.7.4")
+            .version("1.7.5")
             .author("Toby Lin")
             .about("compile_commands.json postprocess for zebu")
             .arg(
@@ -45,6 +45,13 @@ impl ArgParser {
                     .value_parser(["keep", "retain_first", "retain_last"])
                     .required(false)
                     .default_value("retain_first"),
+            )
+            .arg(
+                Arg::new("skip_nonexisted_file")
+                    .long("skip_nonexisted_file")
+                    .help("Skip the non-existed transunit file.")
+                    .required(false)
+                    .action(clap::ArgAction::SetTrue),
             )
             .arg(
                 Arg::new("dump_TransUnit_list")
@@ -88,5 +95,12 @@ impl ArgParser {
 
     pub fn find_the_command(&self) -> Option<&String> {
         self.matches.get_one::<String>("FindCommand")
+    }
+
+    pub fn skip_nonexisted_file(&self) -> bool {
+        self.matches
+            .get_one::<bool>("skip_nonexisted_file")
+            .map(|x| *x)
+            .unwrap_or(false)
     }
 }

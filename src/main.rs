@@ -1,20 +1,24 @@
 use rayon::prelude::*;
 
+use ccj_postprocess::arg_parser;
 use ccj_postprocess::compile_commands::CompileCommand;
 use ccj_postprocess::postprocess_config::PostProcessConfig;
-use ccj_postprocess::arg_parser;
-
+use std::path::Path;
 fn main() {
     let arg_parser = arg_parser::ArgParser::parse();
     let input_file = arg_parser.get_input_file().unwrap();
-    let postprocess_config = arg_parser.get_postprocess_config().map(|file| {
-        PostProcessConfig::parse_the_config(file)
-    });
+    let postprocess_config = arg_parser
+        .get_postprocess_config()
+        .map(|file| PostProcessConfig::parse_the_config(file));
     let mut compile_commands = CompileCommand::parse(input_file);
+    
+    if arg_parser.skip_nonexisted_file() {
+        compile_commands.retain(|c| Path::new(&format!("{}/{}", c.directory, c.file)).exists());
+    }
 
     if let Some(append_path) = arg_parser.get_append_files() {
         for a_path in append_path.split(',') {
-            let mut append_compile_commands= CompileCommand::parse(a_path);
+            let mut append_compile_commands = CompileCommand::parse(a_path);
             compile_commands.append(&mut append_compile_commands);
         }
     }
