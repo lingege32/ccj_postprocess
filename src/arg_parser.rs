@@ -5,6 +5,82 @@ pub struct ArgParser {
     matches: ArgMatches,
 }
 
+/// A builder for creating command-line arguments.
+pub struct ArgBuilder;
+
+impl ArgBuilder {
+    /// Creates the argument for the input file.
+    pub fn input_file_arg() -> Arg {
+        Arg::new("input_file")
+            .short('i')
+            .value_name("input")
+            .long("input")
+            .help("a compile_commands.json generated from vgbuild")
+            .action(clap::ArgAction::Set)
+            .required(true)
+    }
+
+    /// Creates the argument for the append file.
+    pub fn append_file_arg() -> Arg {
+        Arg::new("append_file")
+            .short('a')
+            .value_name("append")
+            .long("append")
+            .help("Append files after input file; use ',' as delimiter")
+            .action(clap::ArgAction::Set)
+            .required(false)
+    }
+
+    /// Creates the argument for the postprocess config.
+    pub fn postprocess_config_arg() -> Arg {
+        Arg::new("postprocess_config")
+            .short('p')
+            .value_name("postprocess_config")
+            .long("post_conf")
+            .help("a json format config to tell ccj_postprocess how to postprocess")
+            .action(clap::ArgAction::Set)
+            .required(false)
+    }
+
+    /// Creates the argument for the keep duplicated file option.
+    pub fn keep_duplicated_file_arg() -> Arg {
+        Arg::new("keep_duplicated_file")
+            .long("keep-duplicated")
+            .help("keep duplicated file in the command line.")
+            .action(clap::ArgAction::Set)
+            .value_parser(["keep", "retain_first", "retain_last"])
+            .required(false)
+            .default_value("retain_first")
+    }
+
+    /// Creates the argument for skipping non-existed files.
+    pub fn skip_nonexisted_file_arg() -> Arg {
+        Arg::new("skip_nonexisted_file")
+            .long("skip_nonexisted_file")
+            .help("Skip the non-existed transunit file.")
+            .required(false)
+            .action(clap::ArgAction::SetTrue)
+    }
+
+    /// Creates the argument for dumping the transunit list.
+    pub fn dump_transunit_list_arg() -> Arg {
+        Arg::new("dump_TransUnit_list")
+            .long("dump_list")
+            .help("Dump the all transunit file")
+            .required(false)
+            .action(clap::ArgAction::SetTrue)
+    }
+
+    /// Creates the argument for finding a command.
+    pub fn find_command_arg() -> Arg {
+        Arg::new("FindCommand")
+            .long("find_command")
+            .help("Dump the directory and the command for the specified file. Seperated by the comma.")
+            .required(false)
+            .action(clap::ArgAction::Set)
+    }
+}
+
 impl ArgParser {
     /// Parses the command-line arguments and returns a new `ArgParser` instance.
     ///
@@ -19,70 +95,23 @@ impl ArgParser {
     /// let arg_parser = ArgParser::parse();
     /// ```
     pub fn parse() -> Self {
-        Self {
-            matches: Command::new("ccj_postprocess")
-                .version("1.7.5")
-                .author("Toby Lin")
-                .about("compile_commands.json postprocess for zebu")
-                .arg(
-                    Arg::new("input_file")
-                        .short('i')
-                        .value_name("input")
-                        .long("input")
-                        .help("a compile_commands.json generated from vgbuild")
-                        .action(clap::ArgAction::Set)
-                        .required(true),
-                )
-                .arg(
-                    Arg::new("append_file")
-                        .short('a')
-                        .value_name("append")
-                        .long("append")
-                        .help("Append files after input file; use ',' as delimiter")
-                        .action(clap::ArgAction::Set)
-                        .required(false),
-                )
-                .arg(
-                    Arg::new("postprocess_config")
-                        .short('p')
-                        .value_name("postprocess_config")
-                        .long("post_conf")
-                        .help("a json format config to tell ccj_postprocess how to postprocess")
-                        .action(clap::ArgAction::Set)
-                        .required(false),
-                )
-                .arg(
-                    Arg::new("keep_duplicated_file")
-                        .long("keep-duplicated")
-                        .help("keep duplicated file in the command line.")
-                        .action(clap::ArgAction::Set)
-                        .value_parser(["keep", "retain_first", "retain_last"])
-                        .required(false)
-                        .default_value("retain_first"),
-                )
-                .arg(
-                    Arg::new("skip_nonexisted_file")
-                        .long("skip_nonexisted_file")
-                        .help("Skip the non-existed transunit file.")
-                        .required(false)
-                        .action(clap::ArgAction::SetTrue),
-                )
-                .arg(
-                    Arg::new("dump_TransUnit_list")
-                        .long("dump_list")
-                        .help("Dump the all transunit file")
-                        .required(false)
-                        .action(clap::ArgAction::SetTrue),
-                )
-                .arg(
-                    Arg::new("FindCommand")
-                        .long("find_command")
-                        .help("Dump the directory and the command for the specified file. Seperated by the comma.")
-                        .required(false)
-                        .action(clap::ArgAction::Set),
-                )
-                .get_matches(),
-        }
+        let matches = Self::build_command().get_matches();
+        Self { matches }
+    }
+
+    /// Builds the command-line argument parser.
+    fn build_command() -> Command {
+        Command::new("ccj_postprocess")
+            .version("1.7.6")
+            .author("Toby Lin")
+            .about("compile_commands.json postprocess for zebu")
+            .arg(ArgBuilder::input_file_arg())
+            .arg(ArgBuilder::append_file_arg())
+            .arg(ArgBuilder::postprocess_config_arg())
+            .arg(ArgBuilder::keep_duplicated_file_arg())
+            .arg(ArgBuilder::skip_nonexisted_file_arg())
+            .arg(ArgBuilder::dump_transunit_list_arg())
+            .arg(ArgBuilder::find_command_arg())
     }
 
     /// Returns the input file path.
