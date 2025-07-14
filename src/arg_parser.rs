@@ -1,91 +1,171 @@
 use clap::{Arg, ArgMatches, Command};
+
+/// A struct for parsing command-line arguments.
 pub struct ArgParser {
     matches: ArgMatches,
 }
 
 impl ArgParser {
+    /// Parses the command-line arguments and returns a new `ArgParser` instance.
+    ///
+    /// # Returns
+    ///
+    /// - `Self` - An `ArgParser` instance containing the parsed command-line arguments.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// ```
     pub fn parse() -> Self {
         Self {
             matches: Command::new("ccj_postprocess")
-            .version("1.7.5")
-            .author("Toby Lin")
-            .about("compile_commands.json postprocess for zebu")
-            .arg(
-                Arg::new("input_file")
-                    .short('i')
-                    .value_name("input")
-                    .long("input")
-                    .help("a compile_commands.json generated from vgbuild")
-                    .action(clap::ArgAction::Set)
-                    .required(true),
-            )
-            .arg(
-                Arg::new("append_file")
-                    .short('a')
-                    .value_name("append")
-                    .long("append")
-                    .help("Append files after input file; use ',' as delimiter")
-                    .action(clap::ArgAction::Set)
-                    .required(false),
-            )
-            .arg(
-                Arg::new("postprocess_config")
-                    .short('p')
-                    .value_name("postprocess_config")
-                    .long("post_conf")
-                    .help("a json format config to tell ccj_postprocess how to postprocess")
-                    .action(clap::ArgAction::Set)
-                    .required(false),
-            )
-            .arg(
-                Arg::new("keep_duplicated_file")
-                    .long("keep-duplicated")
-                    .help("keep duplicated file in the command line.")
-                    .action(clap::ArgAction::Set)
-                    .value_parser(["keep", "retain_first", "retain_last"])
-                    .required(false)
-                    .default_value("retain_first"),
-            )
-            .arg(
-                Arg::new("skip_nonexisted_file")
-                    .long("skip_nonexisted_file")
-                    .help("Skip the non-existed transunit file.")
-                    .required(false)
-                    .action(clap::ArgAction::SetTrue),
-            )
-            .arg(
-                Arg::new("dump_TransUnit_list")
-                    .long("dump_list")
-                    .help("Dump the all transunit file")
-                    .required(false)
-                    .action(clap::ArgAction::SetTrue),
-            )
-            .arg(
-                Arg::new("FindCommand")
-                    .long("find_command")
-                    .help("Dump the directory and the command for the specified file. Seperated by the comma.")
-                    .required(false)
-                    .action(clap::ArgAction::Set),
-            )
-            .get_matches()
+                .version("1.7.5")
+                .author("Toby Lin")
+                .about("compile_commands.json postprocess for zebu")
+                .arg(
+                    Arg::new("input_file")
+                        .short('i')
+                        .value_name("input")
+                        .long("input")
+                        .help("a compile_commands.json generated from vgbuild")
+                        .action(clap::ArgAction::Set)
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("append_file")
+                        .short('a')
+                        .value_name("append")
+                        .long("append")
+                        .help("Append files after input file; use ',' as delimiter")
+                        .action(clap::ArgAction::Set)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("postprocess_config")
+                        .short('p')
+                        .value_name("postprocess_config")
+                        .long("post_conf")
+                        .help("a json format config to tell ccj_postprocess how to postprocess")
+                        .action(clap::ArgAction::Set)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("keep_duplicated_file")
+                        .long("keep-duplicated")
+                        .help("keep duplicated file in the command line.")
+                        .action(clap::ArgAction::Set)
+                        .value_parser(["keep", "retain_first", "retain_last"])
+                        .required(false)
+                        .default_value("retain_first"),
+                )
+                .arg(
+                    Arg::new("skip_nonexisted_file")
+                        .long("skip_nonexisted_file")
+                        .help("Skip the non-existed transunit file.")
+                        .required(false)
+                        .action(clap::ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("dump_TransUnit_list")
+                        .long("dump_list")
+                        .help("Dump the all transunit file")
+                        .required(false)
+                        .action(clap::ArgAction::SetTrue),
+                )
+                .arg(
+                    Arg::new("FindCommand")
+                        .long("find_command")
+                        .help("Dump the directory and the command for the specified file. Seperated by the comma.")
+                        .required(false)
+                        .action(clap::ArgAction::Set),
+                )
+                .get_matches(),
         }
     }
 
+    /// Returns the input file path.
+    ///
+    /// # Returns
+    ///
+    /// - `Option<&String>` - The input file path if it exists, otherwise `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let input_file = arg_parser.get_input_file();
+    /// ```
     pub fn get_input_file(&self) -> Option<&String> {
         self.matches.get_one::<String>("input_file")
     }
 
+    /// Returns the postprocess config file path.
+    ///
+    /// # Returns
+    ///
+    /// - `Option<&String>` - The postprocess config file path if it exists, otherwise `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let config = arg_parser.get_postprocess_config();
+    /// ```
     pub fn get_postprocess_config(&self) -> Option<&String> {
         self.matches.get_one::<String>("postprocess_config")
     }
 
+    /// Returns the append file paths.
+    ///
+    /// # Returns
+    ///
+    /// - `Option<&String>` - The append file paths if they exist, otherwise `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let append_files = arg_parser.get_append_files();
+    /// ```
     pub fn get_append_files(&self) -> Option<&String> {
         self.matches.get_one::<String>("append_file")
     }
 
+    /// Returns the keep duplicated option.
+    ///
+    /// # Returns
+    ///
+    /// - `Option<&String>` - The keep duplicated option if it exists, otherwise `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let keep_duplicated = arg_parser.get_keep_duplicated();
+    /// ```
     pub fn get_keep_duplicated(&self) -> Option<&String> {
         self.matches.get_one::<String>("keep_duplicated_file")
     }
+
+    /// Returns whether to dump the transunit list.
+    ///
+    /// # Returns
+    ///
+    /// - `bool` - `true` if the transunit list should be dumped, otherwise `false`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let is_dump = arg_parser.is_dump_transunit_list();
+    /// ```
     pub fn is_dump_transunit_list(&self) -> bool {
         self.matches
             .get_one::<bool>("dump_TransUnit_list")
@@ -93,10 +173,36 @@ impl ArgParser {
             .unwrap_or(false)
     }
 
+    /// Returns the file to find the command for.
+    ///
+    /// # Returns
+    ///
+    /// - `Option<&String>` - The file to find the command for if it exists, otherwise `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let find_command = arg_parser.find_the_command();
+    /// ```
     pub fn find_the_command(&self) -> Option<&String> {
         self.matches.get_one::<String>("FindCommand")
     }
 
+    /// Returns whether to skip non-existed files.
+    ///
+    /// # Returns
+    ///
+    /// - `bool` - `true` if non-existed files should be skipped, otherwise `false`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let skip = arg_parser.skip_nonexisted_file();
+    /// ```
     pub fn skip_nonexisted_file(&self) -> bool {
         self.matches
             .get_one::<bool>("skip_nonexisted_file")
