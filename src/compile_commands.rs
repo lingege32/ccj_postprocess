@@ -16,6 +16,29 @@ pub struct CompileCommand {
 }
 
 impl CompileCommand {
+    /// Post-process a single compile command.
+    ///
+    /// # Arguments
+    ///
+    /// * `&mut self` - The compile command to be post-processed.
+    /// * `pp_config` - The post-processing configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    /// use crate::postprocess_config::PostProcessConfig;
+    ///
+    /// let mut cc = CompileCommand {
+    ///     command: "g++ -I. -DNDEBUG -o test test.cpp".to_string(),
+    ///     arguments: vec![],
+    ///     directory: "/path/to/project".to_string(),
+    ///     file: "test.cpp".to_string(),
+    ///     output: "test".to_string(),
+    /// };
+    /// let pp_config = Some(PostProcessConfig::default());
+    /// cc.postprocess(&pp_config);
+    /// ```
     pub fn postprocess(&mut self, pp_config: &Option<PostProcessConfig>) {
         self.init_arguments();
         let arguments = &mut self.arguments;
@@ -52,6 +75,19 @@ impl CompileCommand {
         self.command = Self::join_the_arguments_as_commands(arguments);
     }
 
+    /// Parses a `compile_commands.json` file and returns a vector of `CompileCommand` structs.
+    ///
+    /// # Arguments
+    ///
+    /// * `file` - The path to the `compile_commands.json` file.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let compile_commands = CompileCommand::parse("compile_commands.json");
+    /// ```
     pub fn parse(file: &str) -> Vec<CompileCommand> {
         let path = Path::new(file);
         let context =
@@ -60,6 +96,20 @@ impl CompileCommand {
             .expect(&format!("[Error] json file {:?} parse fail!", path))
     }
 
+    /// Dumps a slice of `CompileCommand` structs to the console in a JSON format.
+    ///
+    /// # Arguments
+    ///
+    /// * `compile_commands` - The slice of `CompileCommand` structs to be dumped.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let compile_commands = vec![];
+    /// CompileCommand::dump_ccj(&compile_commands);
+    /// ```
     pub fn dump_ccj(compile_commands: &[CompileCommand]) {
         println!("[");
         compile_commands[0].dump_one_ccj();
@@ -69,6 +119,20 @@ impl CompileCommand {
         }
         println!("]");
     }
+    /// Removes duplicate compile commands from a vector, keeping the first occurrence.
+    ///
+    /// # Arguments
+    ///
+    /// * `compile_commands` - The vector of `CompileCommand` structs to be deduplicated.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let compile_commands = vec![];
+    /// let deduped_commands = CompileCommand::deduplicate_with_retain_first(compile_commands);
+    /// ```
     pub fn deduplicate_with_retain_first(
         mut compile_commands: Vec<CompileCommand>,
     ) -> Vec<CompileCommand> {
@@ -83,6 +147,23 @@ impl CompileCommand {
         }
         compile_commands
     }
+    /// Processes the compile commands based on a `PostProcessConfig`, likely filtering out ignored files.
+    ///
+    /// # Arguments
+    ///
+    /// * `compile_commands` - The vector of `CompileCommand` structs to be processed.
+    /// * `ppc` - The post-processing configuration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    /// use crate::postprocess_config::PostProcessConfig;
+    ///
+    /// let mut compile_commands = vec![];
+    /// let pp_config = PostProcessConfig::default();
+    /// CompileCommand::process_config(&mut compile_commands, &pp_config);
+    /// ```
     pub fn process_config(compile_commands: &mut Vec<CompileCommand>, ppc: &PostProcessConfig) {
         let ignore_files: Vec<String> = ppc.ignore_files.clone();
         if !ignore_files.is_empty() {
@@ -97,10 +178,43 @@ impl CompileCommand {
             });
         }
     }
+    /// Prints the full path of the file associated with the compile command.
+    ///
+    /// # Arguments
+    ///
+    /// * `&self` - The compile command.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let cc = CompileCommand {
+    ///     command: "".to_string(),
+    ///     arguments: vec![],
+    ///     directory: "/path/to/project".to_string(),
+    ///     file: "test.cpp".to_string(),
+    ///     output: "".to_string(),
+    /// };
+    /// cc.dump_full_path();
+    /// ```
     pub fn dump_full_path(&self) {
         println!("{}/{}", self.directory, self.file);
     }
 
+    /// Checks if a command-line argument is a `-D` option with an equals sign.
+    ///
+    /// # Arguments
+    ///
+    /// * `arg` - The command-line argument.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// assert!(CompileCommand::is_arg_with_d_and_equal("-DNDEBUG=1"));
+    /// ```
     fn is_arg_with_d_and_equal(arg: &str) -> bool {
         if arg.len() < 2 || &arg[0..2] != "-D" {
             return false;
@@ -112,6 +226,19 @@ impl CompileCommand {
         }
         true
     }
+    /// Checks if a `-D` option needs single quote handling.
+    ///
+    /// # Arguments
+    ///
+    /// * `arg` - The command-line argument.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// assert!(CompileCommand::is_need_to_handle_sing_quota("-DEXTERN='abc'"));
+    /// ```
     fn is_need_to_handle_sing_quota(arg: &str) -> bool {
         if arg.len() < 2 || &arg[0..2] != "-D" {
             return false;
@@ -128,6 +255,21 @@ impl CompileCommand {
         }
         true
     }
+    /// Removes single quotes from `-D` options.
+    ///
+    /// # Arguments
+    ///
+    /// * `arg` - The vector of command-line arguments.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let mut args = vec!["-DEXTERN='abc'".to_string()];
+    /// CompileCommand::handle_the_single_quote(&mut args);
+    /// assert_eq!(args[0], "-DEXTERN=abc");
+    /// ```
     fn handle_the_single_quote(arg: &mut [String]) {
         // remove the single quote
         // Example: -DEXTERN='abc' to -DEXTERN=abc.
@@ -143,6 +285,27 @@ impl CompileCommand {
         }
     }
 
+    /// Joins a slice of arguments into a single command string.
+    ///
+    /// It handles arguments with spaces in `-D` options by wrapping the value in single quotes.
+    ///
+    /// # Arguments
+    ///
+    /// * `args` - A slice of command-line arguments.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let args = vec!["g++".to_string(), "-DVAR=a b".to_string(), "main.cpp".to_string()];
+    /// let command = CompileCommand::join_the_arguments_as_commands(&args);
+    /// assert_eq!(command, "g++ -DVAR='a b' main.cpp");
+    ///
+    /// let args_no_space = vec!["g++".to_string(), "-DVAR=ab".to_string(), "main.cpp".to_string()];
+    /// let command_no_space = CompileCommand::join_the_arguments_as_commands(&args_no_space);
+    /// assert_eq!(command_no_space, "g++ -DVAR=ab main.cpp");
+    /// ```
     fn join_the_arguments_as_commands(args: &[String]) -> String {
         args.iter()
             .map(|arg| {
@@ -157,6 +320,41 @@ impl CompileCommand {
             .collect::<Vec<_>>()
             .join(" ")
     }
+
+    /// Initializes the `arguments` field from the `command` field if `arguments` is empty.
+    ///
+    /// It splits the `command` string by spaces.
+    ///
+    /// # Arguments
+    ///
+    /// * `&mut self` - The `CompileCommand` to initialize.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let mut cc = CompileCommand {
+    ///     command: "g++ -o main main.cpp".to_string(),
+    ///     arguments: vec![],
+    ///     directory: "/".to_string(),
+    ///     file: "main.cpp".to_string(),
+    ///     output: "main".to_string(),
+    /// };
+    /// cc.init_arguments();
+    /// assert_eq!(cc.arguments, vec!["g++", "-o", "main", "main.cpp"]);
+    ///
+    /// // Does not re-initialize if arguments already exist
+    /// let mut cc_with_args = CompileCommand {
+    ///     command: "g++ -o main main.cpp".to_string(),
+    ///     arguments: vec!["g++".to_string()],
+    ///     directory: "/".to_string(),
+    ///     file: "main.cpp".to_string(),
+    ///     output: "main".to_string(),
+    /// };
+    /// cc_with_args.init_arguments();
+    /// assert_eq!(cc_with_args.arguments, vec!["g++"]);
+    /// ```
     fn init_arguments(&mut self) {
         if self.arguments.is_empty() {
             self.arguments = self
@@ -166,12 +364,51 @@ impl CompileCommand {
                 .collect::<Vec<String>>();
         }
     }
+
+    /// Removes duplicate options from a vector of arguments, keeping the first occurrence.
+    ///
+    /// # Arguments
+    ///
+    /// * `arguments` - The vector of command-line arguments.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let mut args = vec!["-I.".to_string(), "-g".to_string(), "-I.".to_string()];
+    /// CompileCommand::remove_duplicate_option(&mut args);
+    /// assert_eq!(args, vec!["-I.", "-g"]);
+    /// ```
     fn remove_duplicate_option(arguments: &mut Vec<String>) {
         let mut hs = std::collections::HashSet::new();
         // remove the duplicate arguments
         arguments.retain(|x| hs.insert(x.clone()));
     }
 
+    /// Resolves relative paths in `-I` options to be absolute from the filesystem root.
+    ///
+    /// It takes an include path like `-I.` and a `base_directory` and converts it
+    /// to an absolute path like `-I/path/to/project`.
+    ///
+    /// # Arguments
+    ///
+    /// * `arguments` - The vector of command-line arguments.
+    /// * `base_directory` - The base directory to resolve relative paths against.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let mut args = vec!["-I../include".to_string()];
+    /// CompileCommand::handle_include_path(&mut args, "/home/user/project/src");
+    /// assert_eq!(args[0], "-I/home/user/project/include");
+    ///
+    /// let mut args2 = vec!["-I/usr/local/include".to_string()];
+    /// CompileCommand::handle_include_path(&mut args2, "/home/user/project/src");
+    /// assert_eq!(args2[0], "-I/usr/local/include");
+    /// ```
     fn handle_include_path(arguments: &mut Vec<String>, base_directory: &str) {
         // handle the relative path in -I option
         for option in arguments {
@@ -190,6 +427,23 @@ impl CompileCommand {
         }
     }
 
+    /// Inserts a vector of options into the arguments list after the first element (the compiler).
+    ///
+    /// # Arguments
+    ///
+    /// * `arguments` - The vector of command-line arguments.
+    /// * `insert_options` - The vector of options to insert.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let mut args = vec!["g++".to_string(), "-o".to_string(), "main".to_string(), "main.cpp".to_string()];
+    /// let insert_options = vec!["-DDEBUG".to_string(), "-Wall".to_string()];
+    /// CompileCommand::insert_needed_option(&mut args, insert_options);
+    /// assert_eq!(args, vec!["g++", "-DDEBUG", "-Wall", "-o", "main", "main.cpp"]);
+    /// ```
     fn insert_needed_option(arguments: &mut Vec<String>, mut insert_options: Vec<String>) {
         // insert the specified option after first g++ command
         // original: g++ -o main main.cpp
@@ -199,6 +453,23 @@ impl CompileCommand {
         arguments[1..].rotate_right(len);
     }
 
+    /// Removes options from the arguments list that match a given list of regular expressions.
+    ///
+    /// # Arguments
+    ///
+    /// * `arguments` - The vector of command-line arguments.
+    /// * `remove_options` - A vector of regex patterns to match against and remove.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let mut args = vec!["g++".to_string(), "-g".to_string(), "-O2".to_string(), "-Wall".to_string()];
+    /// let remove_options = vec!["-g".to_string(), "-O.".to_string()];
+    /// CompileCommand::remove_option(&mut args, remove_options);
+    /// assert_eq!(args, vec!["g++", "-Wall"]);
+    /// ```
     fn remove_option(arguments: &mut Vec<String>, remove_options: Vec<String>) {
         use regex::Regex;
         let remove_regex = remove_options
@@ -208,9 +479,30 @@ impl CompileCommand {
         arguments.retain(|x| remove_regex.iter().all(|regex| !regex.is_match(x)));
         // arguments.retain(|x| !remove_options.contains(x));
     }
-    fn replace_option(arguments: &mut Vec<String>, remove_options: Vec<String>) {
+
+    /// Replaces substrings in arguments based on a configuration.
+    ///
+    /// The `replace_options` parameter contains comma-separated strings, e.g., "from,to".
+    /// For each argument, this function replaces all occurrences of "from" with "to".
+    ///
+    /// # Arguments
+    ///
+    /// * `arguments` - The vector of command-line arguments.
+    /// * `replace_options` - A vector of comma-separated "from,to" strings that define the replacements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let mut args = vec!["-O2".to_string(), "--param=val1".to_string()];
+    /// let replace_config = vec!["-O2,-O3".to_string(), "val1,val2".to_string()];
+    /// CompileCommand::replace_option(&mut args, replace_config);
+    /// assert_eq!(args, vec!["-O3", "--param=val2"]);
+    /// ```
+    fn replace_option(arguments: &mut Vec<String>, replace_options: Vec<String>) {
         for arg in arguments {
-            for ro in &remove_options {
+            for ro in &replace_options {
                 let ro_token = ro.split(',').collect::<Vec<_>>();
                 if ro_token.len() == 2 {
                     *arg = arg.replace(ro_token[0], ro_token[1]);
@@ -219,6 +511,27 @@ impl CompileCommand {
         }
     }
 
+    /// Dumps a single `CompileCommand` to the console in a pretty JSON format.
+    ///
+    /// # Arguments
+    ///
+    /// * `&self` - The `CompileCommand` to dump.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::compile_commands::CompileCommand;
+    ///
+    /// let cc = CompileCommand {
+    ///     command: "g++".to_string(),
+    ///     arguments: vec!["g++".to_string()],
+    ///     directory: "/".to_string(),
+    ///     file: "a.cpp".to_string(),
+    ///     output: "a.o".to_string(),
+    /// };
+    /// // This will print the CompileCommand as a JSON object to stdout.
+    /// cc.dump_one_ccj();
+    /// ```
     fn dump_one_ccj(&self) {
         println!("{}", serde_json::to_string_pretty(self).unwrap());
     }
