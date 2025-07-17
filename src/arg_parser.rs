@@ -15,7 +15,7 @@ impl ArgBuilder {
             .short('i')
             .value_name("input")
             .long("input")
-            .help("a compile_commands.json generated from vgbuild")
+            .help("Input compile_commands.json file generated from vgbuild")
             .action(clap::ArgAction::Set)
             .required(true)
     }
@@ -26,7 +26,7 @@ impl ArgBuilder {
             .short('a')
             .value_name("append")
             .long("append")
-            .help("Append files after input file; use ',' as delimiter")
+            .help("Append additional compile_commands.json files (comma-separated)")
             .action(clap::ArgAction::Set)
             .required(false)
     }
@@ -37,7 +37,7 @@ impl ArgBuilder {
             .short('p')
             .value_name("postprocess_config")
             .long("post_conf")
-            .help("a json format config to tell ccj_postprocess how to postprocess")
+            .help("JSON configuration file specifying postprocessing rules")
             .action(clap::ArgAction::Set)
             .required(false)
     }
@@ -46,7 +46,7 @@ impl ArgBuilder {
     pub fn keep_duplicated_file_arg() -> Arg {
         Arg::new("keep_duplicated_file")
             .long("keep-duplicated")
-            .help("keep duplicated file in the command line.")
+            .help("How to handle duplicate files: keep all, retain first occurrence, or retain last occurrence")
             .action(clap::ArgAction::Set)
             .value_parser(["keep", "retain_first", "retain_last"])
             .required(false)
@@ -57,7 +57,7 @@ impl ArgBuilder {
     pub fn skip_nonexisted_file_arg() -> Arg {
         Arg::new("skip_nonexisted_file")
             .long("skip_nonexisted_file")
-            .help("Skip the non-existed transunit file.")
+            .help("Skip source files that don't exist on the filesystem")
             .required(false)
             .action(clap::ArgAction::SetTrue)
     }
@@ -66,7 +66,7 @@ impl ArgBuilder {
     pub fn dump_transunit_list_arg() -> Arg {
         Arg::new("dump_TransUnit_list")
             .long("dump_list")
-            .help("Dump the all transunit file")
+            .help("List all source files (translation units) found in compile commands")
             .required(false)
             .action(clap::ArgAction::SetTrue)
     }
@@ -75,7 +75,7 @@ impl ArgBuilder {
     pub fn find_command_arg() -> Arg {
         Arg::new("FindCommand")
             .long("find_command")
-            .help("Dump the directory and the command for the specified file. Seperated by the comma.")
+            .help("Find and display the compile command for specified files (comma-separated)")
             .required(false)
             .action(clap::ArgAction::Set)
     }
@@ -85,7 +85,7 @@ impl ArgBuilder {
         Arg::new("select_file")
             .long("select_file")
             .short('s')
-            .help("Use interactive file selector to choose cpp files from compile commands")
+            .help("Launch interactive fuzzy finder to select C++ source files from compile commands")
             .action(clap::ArgAction::SetTrue)
             .required(false)
     }

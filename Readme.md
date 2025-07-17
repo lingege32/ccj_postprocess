@@ -20,13 +20,13 @@ ccj_postprocess [OPTIONS] --input <input>
 | Option | Short | Description |
 |--------|-------|-------------|
 | `--input <input>` | `-i` | Input compile_commands.json file generated from vgbuild |
-| `--append <append>` | `-a` | Append additional compile commands files (comma-separated) |
-| `--post_conf <config>` | `-p` | JSON configuration file for postprocessing rules |
-| `--keep-duplicated <mode>` | | Handle duplicate files: `keep`, `retain_first`, `retain_last` [default: retain_first] |
-| `--skip_nonexisted_file` | | Skip files that don't exist on the filesystem |
-| `--dump_list` | | List all translation units (source files) |
-| `--find_command <file>` | | Find and display the compile command for a specific file |
-| `--select_file` | `-s` | **NEW**: Interactive C++ file selector using fuzzy finder |
+| `--append <append>` | `-a` | Append additional compile_commands.json files (comma-separated) |
+| `--post_conf <config>` | `-p` | JSON configuration file specifying postprocessing rules |
+| `--keep-duplicated <mode>` | | How to handle duplicate files: keep all, retain first occurrence, or retain last occurrence [default: retain_first] |
+| `--skip_nonexisted_file` | | Skip source files that don't exist on the filesystem |
+| `--dump_list` | | List all source files (translation units) found in compile commands |
+| `--find_command <file>` | | Find and display the compile command for specified files (comma-separated) |
+| `--select_file` | `-s` | **NEW**: Launch interactive fuzzy finder to select C++ source files from compile commands |
 | `--help` | `-h` | Show help information |
 | `--version` | `-V` | Display version information |
 
