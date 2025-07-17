@@ -3,6 +3,7 @@ use rayon::prelude::*;
 use ccj_postprocess::arg_parser;
 use ccj_postprocess::compile_commands::CompileCommand;
 use ccj_postprocess::postprocess_config::PostProcessConfig;
+use ccj_postprocess::skim_utility;
 use std::path::Path;
 fn main() {
     let arg_parser = arg_parser::ArgParser::parse();
@@ -47,6 +48,12 @@ fn main() {
     compile_commands
         .par_iter_mut()
         .for_each(|x| x.postprocess(&postprocess_config));
+
+    // Handle interactive file selection
+    if arg_parser.is_select_file() {
+        skim_utility::select_cpp_files(&compile_commands);
+        return;
+    }
 
     if arg_parser.is_dump_transunit_list() {
         for cc in compile_commands {

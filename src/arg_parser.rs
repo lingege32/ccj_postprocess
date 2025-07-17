@@ -79,6 +79,16 @@ impl ArgBuilder {
             .required(false)
             .action(clap::ArgAction::Set)
     }
+
+    /// Creates the argument for interactive file selection.
+    pub fn select_file_arg() -> Arg {
+        Arg::new("select_file")
+            .long("select_file")
+            .short('s')
+            .help("Use interactive file selector to choose cpp files from compile commands")
+            .action(clap::ArgAction::SetTrue)
+            .required(false)
+    }
 }
 
 impl ArgParser {
@@ -102,7 +112,7 @@ impl ArgParser {
     /// Builds the command-line argument parser.
     fn build_command() -> Command {
         Command::new("ccj_postprocess")
-            .version("1.7.6")
+            .version("1.8.0")
             .author("Toby Lin")
             .about("compile_commands.json postprocess for zebu")
             .arg(ArgBuilder::input_file_arg())
@@ -112,6 +122,7 @@ impl ArgParser {
             .arg(ArgBuilder::skip_nonexisted_file_arg())
             .arg(ArgBuilder::dump_transunit_list_arg())
             .arg(ArgBuilder::find_command_arg())
+            .arg(ArgBuilder::select_file_arg())
     }
 
     /// Returns the input file path.
@@ -235,6 +246,26 @@ impl ArgParser {
     pub fn skip_nonexisted_file(&self) -> bool {
         self.matches
             .get_one::<bool>("skip_nonexisted_file")
+            .map(|x| *x)
+            .unwrap_or(false)
+    }
+
+    /// Returns whether to use interactive file selection.
+    ///
+    /// # Returns
+    ///
+    /// - `bool` - `true` if interactive file selection should be used, otherwise `false`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::arg_parser::ArgParser;
+    /// let arg_parser = ArgParser::parse();
+    /// let select_file = arg_parser.is_select_file();
+    /// ```
+    pub fn is_select_file(&self) -> bool {
+        self.matches
+            .get_one::<bool>("select_file")
             .map(|x| *x)
             .unwrap_or(false)
     }
